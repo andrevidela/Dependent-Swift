@@ -193,17 +193,21 @@ func ^^ <A: Multiplicative> (lhs: A, rhs: Int) -> A {
 
  # Sized vectors in Swift
 
- In the last part we used protocols in order to model our different operations and
- combine them to great effects.
+ In the previous part we used protocols in order to model for some properties
+ we were interested in and found multiple examples that fit the model (2D
+ vectors, complex numbers and linear functions).
 
- But we were constrained to 2-dimensional types. This is a bit limiting, we would
- like to manipulate values of more than 2 dimensions. This would require making sure
+ But these were constrained to 2-dimensional types. This is too limiting, we
+ would like to manipulate more than 2 dimensions. This would require making sure
  that we are manipulating values of the same dimensions.
 
- What's following is seriously considered a "do not try this at home" and is purely
- presented for it's academic interest rather than its real world practicality in Swift.
+ **disclaimer**
 
- We are going to implement dependent types using protocols
+ What follows is seriously considered a "do not try this at home" and is purely
+ presented for it's academic interest rather than its real world practicality
+ in Swift.
+
+ We are going to implement dependent types using protocols.
 
  ## N-dimensional vectors, first attempt
 
@@ -214,30 +218,30 @@ func ^^ <A: Multiplicative> (lhs: A, rhs: Int) -> A {
 
  ```
  struct NVector<A> {
- let vec: [A]
+     let vec: [A]
  }
 
  extension NVector: Additive where A: Additive {
- static func + (lhs: NVector<A>, rhs: NVector<A>) -> NVector<A> {
- if lhs.vec.count == rhs.vec.count {
- return NVector(vec: zip(lhs.vec, rhs.vec).map(+))
- } else {
- // err…what now?
- fatalError()
- }
- }
+     static func + (lhs: NVector<A>, rhs: NVector<A>) -> NVector<A> {
+         if lhs.vec.count == rhs.vec.count {
+             return NVector(vec: zip(lhs.vec, rhs.vec).map(+))
+         } else {
+             // err…what now?
+             fatalError()
+         }
+     }
 
- static var aIdentity: NVector<A> {
- // return… wait, what's the size of the array we need to return?
- // we can't just return [] or [A.aIdentity] we need to return the same size as the vector we're expecting to combine with
- fatalError()
- }
+     static var aIdentity: NVector<A> {
+         // return… wait, what's the size of the array we need to return?
+         // we can't just return [] or [A.aIdentity] we need to return the same size as the vector we're expecting to combine with
+         fatalError()
+     }
  }
  ```
 
- We actually cannot implement `Additive` for `NVector` because it does not carry
- enough information about the size of the array. We need to encode the size of
- the array somehow in the data. This will both allow us to reuse code as well as
+ Unfortunatly, we cannot implement `Additive` for `NVector` because it does not carry
+ enough information about its size. We need to encode the size of the vector
+ somehow. This will both allow us to reuse code as well as
  avoid errors like the following:
 
  ```
@@ -273,9 +277,11 @@ func ^^ <A: Multiplicative> (lhs: A, rhs: Int) -> A {
  "Nat" is the shorthand for "natural number" which are the designation for
  integer numbers from 0 to infinity. They are defined recursively using those
  two definitions:
+
  - Zero is a natural number
  - Any successor to a natural number is also a natural number
- In Swift we can write this as:
+
+ This can be written in Swift like so:
 
  */
 
@@ -294,20 +300,20 @@ typealias Four  = Succ<Three>
 /*:
  As you can see the numbers are recursively defined in terms of the previous
  ones. You can also see that we are using empty `enum` declaration which have no
- values. That mean that `Nat` only exists as *types* and not as *values*. There
+ values. That mean that `Nat` only exists as *type* and not as *value*. There
  is no *value* for the type `Three`.
 
- We can however create a function that, given a type `Nat` can retrieve the
+ We can however create a function that, given a type `Nat` can return the
  `Int` value that it represents. So that we can get the value `3` (of type
  `Int`) from the type `Three`.
 
  Here is how:
 
- First we need a protocol that will declare that the type that conforms to it
+ 1. First we need a protocol that will declare that the type that conforms to it
  has an `Int` representation
  */
 
-protocol NatToInt {
+protocol IntRepr {
     static var int: Int { get }
 }
 
@@ -315,29 +321,29 @@ protocol NatToInt {
  This protocol states that a type conforming to it has a static `Int` value
  associated with it.
 
- Then, we need to implement this protocol for the `Zero` type
+ 2. Then, we need to implement this protocol for the `Zero` type
  and for the `Succ` type. `Zero` is straight-forward to implement: `Zero` is
  represented by the number `0`.
  */
 
-extension Zero: NatToInt {
+extension Zero: IntRepr {
     static var int: Int { return 0 }
 }
 
 /*:
- Finally we need to implement the same protocol for `Succ`. `Succ` is a bit
+ 3. Finally we need to implement the same protocol for `Succ`. `Succ` is a bit
  trickier because it is recursively defined. So we need to make use of
  conditional conformance in order to ask that the inner `N` type also has an
- `Int` representation. This allows us to compute the value using the `NatToInt`
- implementation of the wrapped `Nat`.
+ `Int` representation. The wrapped type `N` is actually the predecessor of the
+ type we are currently computing.
 
- `Succ` returns `1` plus the `Int` value of `N`. So that way the type `Two`
- returns `1` plus the int value of `One` which itself returns `1` + the `Int`
- value of `Zero` which we said was `0`. The total amounts to `1 + 1 + 0 = 2`.
- [COND]: https://swift.org/blog/conditional-conformance/
+ Therefore, `Succ` returns `1` plus the `Int` value of `N`, it's predecessor.
+ This way the type `Two` returns `1` plus the int value of `One` which itself
+ returns `1` + the `Int` value of `Zero` which is `0`.
+ The total amounts to `1 + 1 + 0 = 2`.
  */
 
-extension Succ: NatToInt where N: NatToInt {
+extension Succ: IntRepr where N: IntRepr {
     static var int: Int { return 1 + N.int}
 }
 
@@ -358,8 +364,9 @@ Three.int
 
  ```
  enum NVector<N: Nat, A> {
- case empty // N should be Zero here
- case cons(A, NVector<???, A>)
+     case empty // N should be Zero here
+     case cons(A, NVector<???, A>) // What should fit here?
+ }
  ```
 
  We cannot have a different `N` for each case, ideally we would like something
@@ -367,14 +374,15 @@ Three.int
 
  ```
  enum NVector<N: Nat, A> {
- case empty where N == Zero
- case cons<Pred: Nat>(A, NVector<Pred, A>) where Succ<Pred> == N
+     case empty where N == Zero
+     case cons<Pred: Nat>(A, NVector<Pred, A>) where Succ<Pred> == N
  }
  ```
 
- * note: This suspiciously look like _GADTs_
+ * note: This suspiciously look like [_GADTs_](https://en.wikipedia.org/wiki/Generalized_algebraic_data_type)
 
- Instead we are going to use the same strategy that we used with `Nat`, we are going to define a protocol and have multiple datatypes implementing it.
+ Instead we are going to use the same strategy that we used with `Nat`, we are
+ going to define a protocol and have concrete type implementing it.
 
  */
 
@@ -387,10 +395,25 @@ protocol NVector {
  This says that a N-dimensional vector depends on two types, the size as a `Nat`
  and the `Elements` inside the vector.
 
- Since we are going to define Vects as linked lists we are going to need two
- datatypes. One for the empty list and one for the list that has one element and
- a reference to a smaller list.
+ Interestingly enough, we cannot use arrays to define our vectors since they
+ do not carry size information at the type level. Instead we are going to
+ implement vectors like we implement linked lists. As a reminder here is how
+ we would implement linked lists in swift
+
+ ```
+ indirect enum LinkedList<A> {
+     case empty
+     case cons(A, LinkedList<A>)
+ }
+ ```
+
+ That is, a `LinkedList` could be either empty, or have a head element and a
+ tail `LinkedList`. Again we cannot use `enum` here because of our size
+ constraint but we _are_ going to use the same idea: An empty vector holds
+ nothing, and a "cons" vector hold both an element and a tail vector.
+
  */
+
 
 struct NilVect<A>: NVector {
     typealias Size = Zero
@@ -409,15 +432,15 @@ struct ConsVect<VS: NVector>: NVector {
  struct which has size `Zero` and carries any type `A`.
 
  For the `Cons` case we have a struct with two fields. One for the head of the
- list, and one for the tail of the list. The type of the tail (`VS`) has to
- also be a `NVector`. This allows us to define the size of the vector (the
- vector has to be of size one more than the size of the tail) and what kind of
- element it holds (the same elements as the tail).
+ vector, and one for the tail of the vector. The type of the tail (`VS`) also
+ has to be a `NVector`. This allows us to define the size of the vector to be
+ one more than the size of the tail and that the element has to be of the same
+ type as the elements held by the tail.
 
  ## Writing dependent functions
 
  We can now start using our sized vectors but they are not very ergonomic to
- create. If we need to construct a vector of size 3 we need to make 3 calls to
+ create. In order to construct a vector of size 3 we need to make 3 calls to
  `ConsVect` and one call to `NilVect`:
 
  */
@@ -470,12 +493,14 @@ let BIGVECT = 9 §§ 8 §§ 7 §§ 6 §§ 5 §§ 4 §§ 3 §§ 2 §§ 1 §§ 0 �
  ## Using type information
 
  A very nice property from having the size information in the type is that we
- do not even have to inspect our data in order to compute useful data. For
+ do not even have to inspect our data in order to compute useful programs. For
  example, by reusing our `int` property on `Nat` we can compute the size of a
  vector without iterating though it.
+
+ * note: This still requires iterating through the `Nat` type.
  */
 
-func length<V: NVector>(_ vec: V) -> Int where V.Size: NatToInt {
+func length<V: NVector>(_ vec: V) -> Int where V.Size: IntRepr {
     return V.Size.int
 }
 
@@ -489,7 +514,16 @@ length(BIGVECT)
  in types and will hold for all possible instances. This form of polymorphism
  is stronger than simple generics because it allows us to write more complex
  constraints (like size constraints) while staying agnostic of the nature of the
- data we manipulate.
+ data we manipulate. Indeed, the implementation for `NVector` could be different
+ but as long as it uses `Nat` to enforce its size then this implementation will
+ work.
+
+ You might also notice that we are able to go from `Nat` to `Int` but we
+ have not provided a way to go from `Int` to `Nat`. This is beacuse it is
+ impossible for swift to deduce which instance of a protocol to use from a
+ run-time value. Indeed, if the value `3` came from standard input. How would
+ Swift be able to tell that it is the representation of `Succ<Succ<Succ<Zero>>>`
+ ?
 
  ## Implementing protocols
 
@@ -593,7 +627,7 @@ extension ConsVect: FancyMult where
     VS.Elements: Additive,
     VS.Elements: Multiplicative,
     VS: FancyMult,
-VS.FancyVal == VS.Elements {
+    VS.FancyVal == VS.Elements {
     typealias FancyVal = Elements
     static func ** (lhs: ConsVect<VS>, rhs: ConsVect<VS>) -> Elements {
         return lhs.value * rhs.value + (lhs.tail ** rhs.tail)
@@ -613,7 +647,7 @@ extension ConsVect: Magnitude where
     VS.Elements: Additive,
     VS.Elements: Multiplicative,
     VS: Magnitude,
-VS.Elements == VS.MagVal {
+    VS.Elements == VS.MagVal {
     typealias MagVal = VS.Elements
     var magSquare: VS.Elements {
         return self.value ^^ 2 + self.tail.magSquare
@@ -647,10 +681,10 @@ VS.ScalarVal == VS.Elements {
  - `NilVect` returns some sort of empty value or identity
  - `ConsVect` makes some operation on the head and make a recursive call to the tail.
 
- But Swift is unable to implement those protocols automatically like it did for
- `Vector`, `Complex` and `Linear`.
+ Unfortunately, Swift is unable to implement those protocols automatically like
+ it did for `Vector`, `Complex` and `Linear`.
  Interestingly enough there *is* a part of the language that can abstract over
- this pattern and that's the baked-in Equatable protocol:
+ this pattern and that's the Equatable protocol:
  */
 
 extension NilVect: Equatable {}
@@ -666,7 +700,8 @@ twoVect == twoVect
 
  An astute reader  might notice that we haven't implemented the most famous
  function `map` over vectors. That's because it's currently impossible at least
- with my current understanding of  the type system. Let's give it a try:
+ with my current understanding of  the type system. To see why, let's give it a
+ try:
  */
 
 //  protocol Functor {
@@ -674,7 +709,8 @@ twoVect == twoVect
 //  }
 
 /*:
- * note: a type is `Functor` if it has a `map` function
+ * note: A type is `Functor` if it has a `map` function
+
 
  This definition is incorrect because it indicates that we transform `Self`
  into `Self` which suggest that `Self` does not change. However, we want to
@@ -694,9 +730,9 @@ extension Array: Wrapper {
 
 /*:
  Here, we create a protocol `Wrapper` which abstract over types that have one
- type parameter and can create themselves given a value of that type.
- We also gave an implementation of `Wrapper` for `Array`. Now we can try again
- to design a `Functor` protocol around `Wrapper`:
+ type parameter and can create themselves given a value of that type. As an
+ example we gave an implementation of `Wrapper` for `Array`. Now we can try
+ again to design a `Functor` protocol around `Wrapper`:
  */
 
 protocol Functor: Wrapper {
@@ -714,8 +750,8 @@ protocol Functor: Wrapper {
  quite undewhelming.
 
  * Experiment:
- - remove the comments before the extension
- - remove the comment before `as! R`
+ - Remove the comments before the extension.
+ - Remove the comment before `as! R`.
  */
 
 
@@ -726,6 +762,7 @@ protocol Functor: Wrapper {
 //}
 
 /*:
+ 
  This is what we would like to write but the compiler tells us that it cannot
  convert `[Dest]` into `R` and that's because it cannot prove that `R` and
  `Self` are necessarily the same. This is a constraint we cannot express. The
@@ -741,6 +778,9 @@ protocol Functor: Wrapper {
 //}
 
 /*:
+
+ * experiment: Remove the comments to try it.
+
  2. We lose type inference
  */
 
@@ -750,6 +790,8 @@ protocol Functor: Wrapper {
  It says
 
  "Cannot invoke 'fmap' with an argument list of type '((Int) -> Int)'"
+
+ * experiment: Remove the comment to see the error.
 
  Which is extremely confusing. We *can* invoke `fmap` with `(Int) -> Int` as
  argument but Swift cannot deduce that the return type should be `[Int]` since
@@ -782,10 +824,24 @@ protocol Functor: Wrapper {
 
  # Conclusion
 
- At first we were able to design an architecture that allowed to abstract over the behavior of very generic structures and we were able to combine them in very interesting ways. Then we tried to take this abstraction further and were able to implement _sized_ vectors, something that is rarely possible in other programming languages. Unfortunately that is also where we hit the limits of Swift. The lack of true dependent types prevent us from constructing sized-vectors from the runtime (they all have to be statically defined at compile type) and the lack of higher kinded types prevent us from defining functions like `map` on vectors or matrix multiplication.
- Despite those shortcomings, Swift's type system has gotten way more powerful and useful with the introduction of conditional conformances and is more than capable to handle most programing tasks. It's a shame we still have to rely on runtime errors in order to multiply matrices.
+ In the first part we were able to design an set of protocols that allowed us
+ to abstract over the behavior of very generic structures and we were able to
+ combine them in very interesting ways (As long as they were 2D). Then we tried
+ to abstract over the size of our types and implemented _sized_ vectors.
+ Unfortunately that is also where we hit the limits of Swift; The lack of true
+ dependent types prevent us from constructing sized-vectors from the runtime
+ (they all have to be statically defined at compile type) and the lack of
+ type-level functions or higher kinded types prevent us from
+ defining functions like `map` on vectors or matrix multiplication.
 
- Such abstraction would also allow to develop type-safe state machines, network protocols and better optimisations. I hope to see them enter the mainstream sooner rather than later.
+ Despite those shortcomings, Swift's type system has gotten way more powerful
+ and useful with the introduction of conditional conformances and is more than
+ capable to handle most programing tasks. It's a shame we still have to rely on
+ runtime errors in order to multiply matrices.
 
+ If Dependent Types were included in Swift we would also allow to develop
+ type-safe state machines, network protocols and better optimisations. Even if
+ we "only" get Higher Kinded Types, at least we could implement `map` on our
+ `NVector`.
  */
 //#-end-editable-code

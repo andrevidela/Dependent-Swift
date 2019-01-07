@@ -7,6 +7,7 @@ import Foundation
  During the holidays I ended up having a lot of free time and no phone nor
  computer, I only had my iPad with me.
  From this experiment I learned two things:
+
  1. I am physically unable to spend a couple days without programming on a
  computer
  2. Using Apple's Playground app to write and compile Swift is a delight
@@ -44,6 +45,8 @@ import Foundation
  ```
 
  Let's get started.
+
+ [COND]: https://swift.org/blog/conditional-conformance/
 
  ## Mutliplicative
 
@@ -125,8 +128,8 @@ protocol TwoDimensions {
  implement `Additive` for it. Indeed, any type is `Additive` provided it has
  two dimensions and its components are `Additive` as well.
 
- As for Identity, since `Additive` is implemented by adding each component
- together we can define identity by creating a 2D object with identity values
+ As for `addId`, since `Additive` is implemented by adding each component
+ together we can define it by creating a 2D object with identity values
  for each component.
 
  As we can see, we have an identity for addition that isn't `1` but is a value
@@ -172,11 +175,12 @@ protocol Magnitude {
  Since we know how to compute the magnitude of a value in the general sense
  (given a value `v` with projections `x` and `y` the magnitude squared is given
  by `v.x * v.x + v.y * v.y`), any type can have a magnitude provided:
- - it has two dimensions
- - the components are multiplicative
- - the components are additive
- - the types of the components are the same as the result of computing the
- magnitude
+
+ - It has two dimensions.
+ - The components are multiplicative.
+ - The components are additive.
+ - The types of the components are the same as the result of computing the
+   magnitude.
  */
 extension Magnitude where
     Self: TwoDimensions,
@@ -195,7 +199,7 @@ Self.ComponentVal == Self.MagVal {
  The scalar protocol should allow to "scale" a value using another value. For
  this we are going to add a new operator to differentiate between regular
  multiplication and scalar multiplication. The `◊` operator can be found on
- Apple keyboard with `alt-shift-v`.
+ Apple platforms with `alt-shift-v`.
  */
 
 infix operator ◊: MultiplicationPrecedence
@@ -208,10 +212,12 @@ protocol Scalar {
 
 /*:
  This protocol can also be implemented automatically for any type provided:
- - it has two dimensions
- - the components are multiplicative
- - the types of the components are the same as the scale factor's type
+
+ - It has two dimensions.
+ - The components are multiplicative.
+ - The types of the components are the same as the scale factor's type.
  */
+
 extension Scalar where
     Self: TwoDimensions,
     Self.ComponentVal: Multiplicative,
@@ -273,8 +279,10 @@ extension Vector: Equatable where A: Equatable {}
 
 /*:
 
- * note: for the unfamiliar `typealias` relates an `associatedtype` with a
-         concrete type coming from the instance we are implementing.
+ * note: For those unfamiliar with Swift, `typealias` relates an
+   `associatedtype` with a concrete type coming from the instance we
+   are implementing. `MagVal = A` says, "For this instance the associated type
+   `MagVal` is actually `A`"
 
  There is no `Multiplicative` implementation since it isn't clear how to
  multiply two 2D Vectors. (Dot product? Cross product? Multiply the components?)
@@ -290,6 +298,9 @@ xy
 xy.magSquare
 
 /*:
+
+ * experiment: Try making your own vectors!
+
  Computing the magnitude of a vector is a bit awkward let's see how we can
  improve that.
 
@@ -326,9 +337,12 @@ extension Magnitude where Self.MagVal: SquareRoot {
 //print(xy.magnitude)
 
 /*:
- But we get an error
+ But we get an error.
 
  "Type 'Int' does not conform to protocol `SquareRoot`"
+
+ * experiment: Try removing the comment in front of `print(xy.magnitude)` and
+ hit "Run My Code" to see the error.
 
  Indeed, we haven't added a `SquareRoot` extension for `Int`. But that is
  because there is no easy way to compute the square root of an integer number
@@ -365,6 +379,8 @@ doubleVect.magnitude
 
  * note: Note that this definition of square root is incomplete since most
  values have multiple roots.
+
+ * experiment: Try creating your own vectors of `Doubles`
 
  # Complex Numbers
 
@@ -429,6 +445,8 @@ other.magnitude
 17.3 ◊ other
 
 /*:
+
+ * experiment: Try making your own Complex numbers!
 
  # Linear functions
 
@@ -521,7 +539,6 @@ extension Vector: FancyMult where A: Additive, A: Multiplicative {
     }
 }
 
-
 //: This allows us to write the  identity `(a²x² - b²) = (ax + b) * (ax - b)`
 
 let linearMinus = Linear(x: 3, c: -5)
@@ -560,9 +577,12 @@ let quadPlus = Quadratic(x²: 3 ^^ 2, x: 30, c: 5 ^^ 2)
 linearPlus ** linearPlus == quadPlus
 
 /*:
+
+ * experiment: Try multiplying different functions together.
+
  # Combining everything
 
- Now we can even combine everything and have it work as
+ Now we can combine everything and have it work as
  expected. For example we can have complex vectors:
  */
 
