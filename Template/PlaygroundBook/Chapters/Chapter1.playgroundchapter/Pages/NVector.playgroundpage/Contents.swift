@@ -1,5 +1,6 @@
 //#-hidden-code
 import Foundation
+
 protocol Multiplicative {
     static var multId: Self { get }
     static func * (_ lhs: Self, _ rhs: Self) -> Self
@@ -216,7 +217,7 @@ func ^^ <A: Multiplicative> (lhs: A, rhs: Int) -> A {
  n-dimensional vectors but they have pretty big flaws:
 
 
- ```
+ ```swift
  struct NVector<A> {
      let vec: [A]
  }
@@ -414,7 +415,6 @@ protocol NVector {
 
  */
 
-
 struct NilVect<A>: NVector {
     typealias Size = Zero
     typealias Elements = A
@@ -433,8 +433,9 @@ struct ConsVect<VS: NVector>: NVector {
 
  For the `Cons` case we have a struct with two fields. One for the head of the
  vector, and one for the tail of the vector. The type of the tail (`VS`) also
- has to be a `NVector`. This allows us to define the size of the vector to be
- one more than the size of the tail and that the element has to be of the same
+ has to be a `NVector`. This allows us to define the size of the vector in terms
+ of the size of the  tail. That is the size of `Cons` is `Succ` of the size of
+ its tail. It also enforces taht element at the head has to have the same
  type as the elements held by the tail.
 
  ## Writing dependent functions
@@ -468,8 +469,8 @@ func §§ <V: NVector>(lhs: V.Elements, rhs: V) -> ConsVect<V> {
  <V: NVector>(V.Elements, V) -> ConsVect<V>
  ```
  which reads as "for all Vectors `V`, given an element of `V` and a vector `V`,
- construct a vector of size one bigger than `V`". The last part is crucial:
- `ConsVect<V>` means "one size bigger than `V`".
+ construct a vector of size `1 + V.Size`". The last part is crucial:
+ `ConsVect<V>` means "one bigger than the size of `V`".
 
  To further facilitate the usage of Vectors we are going to add the function
  `empty` to create empty vectors.
@@ -490,6 +491,12 @@ let BIGVECT = 9 §§ 8 §§ 7 §§ 6 §§ 5 §§ 4 §§ 3 §§ 2 §§ 1 §§ 0 �
 
 
 /*:
+
+ * experiment: Make your own vectors of abitrary size! You can put anything in them too.
+
+ This is our first example of a function defined on vectors which makes use
+ of its size information in order to constructly correctly-sized vectors.
+
  ## Using type information
 
  A very nice property from having the size information in the type is that we
@@ -520,10 +527,34 @@ length(BIGVECT)
 
  You might also notice that we are able to go from `Nat` to `Int` but we
  have not provided a way to go from `Int` to `Nat`. This is beacuse it is
- impossible for swift to deduce which instance of a protocol to use from a
+ impossible for swift to use a type defined from a
  run-time value. Indeed, if the value `3` came from standard input. How would
  Swift be able to tell that it is the representation of `Succ<Succ<Succ<Zero>>>`
  ?
+
+ *experiment: Try it yourself. Here is a snippet for you to experiment with:
+ */
+
+//func IntToNat(_ int: Int) -> Nat.Type {
+//    if int == 0 {
+//        return Zero.self
+//    } else {
+//        let T = IntToNat(int - 1).self
+//        return Succ<T>.self
+//    }
+//}
+//
+//IntToNat(3)
+
+/*:
+ Even if this function were possible we could not use it in type signatures. For
+ example we cannot do
+
+ ```
+ func makeVector<A, V: NVector>(size: Int, elem: A) -> V where V.Size == IntToNat(size), V.Elements == A {
+     …
+ }
+ ```
 
  ## Implementing protocols
 
@@ -534,18 +565,20 @@ length(BIGVECT)
  conform to `CustomStringConvertible` in order to print out prettier messages.
  */
 
-extension NilVect: CustomStringConvertible {
-    var description: String { return ""}
-}
-
-extension ConsVect: CustomStringConvertible where
-VS: CustomStringConvertible {
-    var description: String {
-        return "\(self.value) \(self.tail.description)"
-    }
-}
+//extension NilVect: CustomStringConvertible {
+//    var description: String { return ""}
+//}
+//
+//extension ConsVect: CustomStringConvertible where
+//VS: CustomStringConvertible {
+//    var description: String {
+//        return "\(self.value) \(self.tail.description)"
+//    }
+//}
 
 /*:
+ * experiment: Try uncommenting the lines above and see how the results differ.
+
  We do not print anything for the empty vector and for the `ConsVect` we print
  the head and then recursively print the tail with a space between the two.
 
@@ -667,7 +700,7 @@ extension NilVect: Scalar {
 extension ConsVect: Scalar where
     VS.Elements: Multiplicative,
     VS: Scalar,
-VS.ScalarVal == VS.Elements {
+    VS.ScalarVal == VS.Elements {
     typealias ScalarVal = VS.Elements
     static func ◊ (lhs: VS.Elements, rhs: ConsVect<VS>) -> ConsVect<VS> {
         return ConsVect<VS>(value: lhs * rhs.value, tail: lhs ◊ rhs.tail)
@@ -698,7 +731,7 @@ twoVect == twoVect
 
  # Final remarks
 
- An astute reader  might notice that we haven't implemented the most famous
+ An astute reader might notice that we haven't implemented the most famous
  function `map` over vectors. That's because it's currently impossible at least
  with my current understanding of  the type system. To see why, let's give it a
  try:
@@ -714,7 +747,7 @@ twoVect == twoVect
 
  This definition is incorrect because it indicates that we transform `Self`
  into `Self` which suggest that `Self` does not change. However, we want to
- transform by changing its type parameter, that is we transform `Self<Src>`
+ transform by changing its type parameter, that is: we transform `Self<Src>`
  into `Self<Dest>`. We need to try something else:
  */
 
@@ -749,7 +782,7 @@ protocol Functor: Wrapper {
  we keep trying we can still implement our `fmap` function but the result is
  quite undewhelming.
 
- * Experiment:
+ * experiment:
  - Remove the comments before the extension.
  - Remove the comment before `as! R`.
  */
@@ -779,7 +812,8 @@ protocol Functor: Wrapper {
 
 /*:
 
- * experiment: Remove the comments to try it.
+ * experiment: Remove the comments to see that we still have a working
+   implementation even though we should not.
 
  2. We lose type inference
  */
@@ -805,22 +839,33 @@ protocol Functor: Wrapper {
  lose the ability to infer the return type of `fmap` which is unusable as an
  API.
 
- If Swift had type-level functions or Higher Kinded Types we could write
- something similar to:
+ If Swift had type-level functions (Like `IntToNat` from before) or
+ [Higher Kinded Types](KIND) we could write something similar to:
+
+ [KIND]: https://en.wikipedia.org/wiki/Kind_(type_theory)
  */
 
-//  protocol Functor: <*> -> * {
+//  protocol Functor: <InnerType: *> -> * {
 //      func fmap<Dest>(_ f: (InnerType) -> Dest) -> Self<Dest>
 //  }
 
 /*:
- * note: I'm reusing the `(Type) -> Type` syntax that we use for function signatures and replacing the parenthesis by angle brackets to make it clear that this is about Type constructors and not Value constructors
+ * note: I'm reusing the `(Type) -> Type` syntax that we use for function
+   signatures and replacing the parenthesis by angle brackets to make it clear
+   that this is about _type_ constructors and not _value_ constructors
 
- With `<*> -> *` representing the types which are parameterized over a single type argument.
+ With `<*> -> *` representing the types which are parameterized over a single
+ type argument.
 
- This would allow the compiler to deduce that the return type of `fmap` is the same type than the type that conforms to it, except it's parameterized over a different `InnerType`.
+ This would allow the compiler to deduce that the return type of `fmap` is the
+ same type than the type that conforms to it, except it's parameterized over a
+ different `InnerType`.
 
- We encounter a similar problem when trying to multiply two sized matrices (Vectors of Vectors) together. Given a matrix of size `M x N` and another of size `N x O` we need to return a matrix of size `M x O`. Unfortunately, Swift does not allow us to define a function that returns a new value of the same type but parameterized over `M x O`.
+ We encounter a similar problem when trying to multiply two sized matrices (
+ Vectors of Vectors) together. Given a matrix of size `M x N` and another of
+ size `N x O` we need to return a matrix of size `M x O`. Unfortunately, Swift
+ does not allow us to define a function that returns a new value of the same
+ type but parameterized over `M x O`.
 
  # Conclusion
 

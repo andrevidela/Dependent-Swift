@@ -490,6 +490,9 @@ moveUpByThree(constOne)
 285 ◊ verySteep
 
 /*:
+ * experiment: Try making your own linear functions. Maybe you can use other
+   values than `Int` and `Double` and see what happens.
+
  As we can see, we left out `magnitude` since the semantics of magnitude for a
  linear function are unclear (at least to me). We also left out `Multiplicative`
  because multiplying two linear functions results in a quadratic one. And this
@@ -509,7 +512,6 @@ protocol FancyMult {
     associatedtype FancyVal
     static func ** (lhs: Self, rhs: Self) -> FancyVal
 }
-
 
 //: We can use this to implement the product between two linear functions:
 
@@ -578,7 +580,9 @@ linearPlus ** linearPlus == quadPlus
 
 /*:
 
- * experiment: Try multiplying different functions together.
+ * experiment:
+   - Try multiplying different functions together.
+   - Try replacing the implentation of `^^` by the one suggested in comments.
 
  # Combining everything
 
