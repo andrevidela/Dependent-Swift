@@ -41,7 +41,7 @@ extension Magnitude where
     Self: TwoDimensions,
     Self.ComponentVal: Multiplicative,
     Self.ComponentVal: Additive,
-Self.ComponentVal == Self.MagVal {
+    Self.ComponentVal == Self.MagVal {
     var magSquare: Self.MagVal {
         return self.fst * self.fst + self.snd * self.snd
     }
@@ -54,7 +54,7 @@ protocol Scalar {
 extension Scalar where
     Self: TwoDimensions,
     Self.ComponentVal: Multiplicative,
-ScalarVal == Self.ComponentVal {
+    ScalarVal == Self.ComponentVal {
     static func ◊ (_ lhs: ScalarVal, _ rhs: Self) -> Self {
         return Self.make2D(lhs * rhs.fst, lhs * rhs.snd)
     }
@@ -532,7 +532,7 @@ length(BIGVECT)
  Swift be able to tell that it is the representation of `Succ<Succ<Succ<Zero>>>`
  ?
 
- *experiment: Try it yourself. Here is a snippet for you to experiment with:
+ * experiment: Try it yourself. Here is a snippet for you to experiment with:
  */
 
 //func IntToNat(_ int: Int) -> Nat.Type {
